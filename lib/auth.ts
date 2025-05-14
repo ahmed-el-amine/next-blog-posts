@@ -3,16 +3,23 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Github from "next-auth/providers/github";
-import { loginUserSchema } from "./zod/userSchema.zod";
+import Google from "next-auth/providers/google";
+import { userLoginSchema } from "./zod/userSchema.zod";
+import bcrypt from "bcryptjs";
 
 const adapter = PrismaAdapter(db);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter,
+  trustHost: true,
   session: {
     strategy: "jwt",
   },
   providers: [
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID ?? "",
+      clientSecret: process.env.AUTH_GOOGLE_SECRET ?? "",
+    }),
     Github({
       clientId: process.env.AUTH_GITHUB_ID ?? "",
       clientSecret: process.env.AUTH_GITHUB_SECRET ?? "",
@@ -31,24 +38,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
       },
       authorize: async (credentials) => {
-        const { success, data } = loginUserSchema.safeParse(credentials);
+        const { success, data } = userLoginSchema.safeParse(credentials);
         if (!success) throw new Error("Email or password is incorrect");
 
         // get the user from database
         const user = await db.user.findUnique({
           where: {
             email: data.email,
-            password: data.password,
           },
         });
 
         if (!user) throw new Error("Email or password is incorrect");
 
+        // check if the password is correct
+        const isMatch = bcrypt.compareSync(data.password, user.password || "");
+
+        if (!isMatch) throw new Error("Email or password is incorrect");
+
         return {
           id: user.id,
           name: user.name,
           email: user.email,
-          image: user.image || "https://cdn-icons-png.flaticon.com/128/6997/6997674.png",
+          image:
+            user.image ||
+            "https://cdn-icons-png.flaticon.com/128/6997/6997674.png",
         };
       },
     }),

@@ -18,6 +18,7 @@ model User {
   sessions      Session[]
   // Optional for WebAuthn support
   Authenticator Authenticator[]
+  posts         Post[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -81,4 +82,24 @@ model Authenticator {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, credentialID])
+}
+
+// Post model for blog posts
+model Post {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String   @db.Text
+  content     String   @db.LongText
+  image       String   @db.Text
+  
+  // Relation to author
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([authorId])
+  @@index([slug])
 }
