@@ -3,9 +3,11 @@
 import { getPostsAction } from "@/actions/post.action";
 import PostCard from "@/components/pages/post/PostCard";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 export default function HomePage() {
+  const session = useSession();
   const [posts, setPosts] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -65,17 +67,30 @@ export default function HomePage() {
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold mb-8">Latest Posts</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Latest Posts</h1>
+
+        {session.data && (
+          <Button asChild>
+            <a href="/post/create">Create Post</a>
+          </Button>
+        )}
+      </div>
 
       {posts.length === 0 && !loading ? (
         <div className="text-center py-12">
           <h2 className="text-xl font-medium mb-4">No posts found</h2>
-          <p className="text-muted-foreground mb-6">
-            Be the first to create a post!
-          </p>
-          <Button asChild>
-            <a href="/post/create">Create Post</a>
-          </Button>
+
+          {session.data && (
+            <>
+              <p className="text-muted-foreground mb-6">
+                Be the first to create a post!
+              </p>
+              <Button asChild>
+                <a href="/post/create">Create Post</a>
+              </Button>
+            </>
+          )}
         </div>
       ) : (
         <>
